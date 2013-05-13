@@ -1,0 +1,4 @@
+[
+    { "keys": ["f8"], "command": "alarm_clock", "args": {"action": "new_alarm"} },
+    { "keys": ["shift+f8"], "command": "alarm_clock" }
+]

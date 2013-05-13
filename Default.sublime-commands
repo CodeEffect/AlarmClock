@@ -1,0 +1,51 @@
+[
+    {
+        "caption": "Alarm Clock: New alarm",
+        "command": "alarm_clock",
+        "args": { "action": "new_alarm" }
+    },
+    {
+        "caption": "Alarm Clock: All options",
+        "command": "alarm_clock"
+    },
+    {
+        "caption": "Alarm Clock: Edit alarm",
+        "command": "alarm_clock",
+        "args": { "action": "edit_alarm" }
+    },
+    {
+        "caption": "Alarm Clock: List alarms",
+        "command": "alarm_clock",
+        "args": { "action": "list_alarms" }
+    },
+    {
+        "caption": "Alarm Clock: Enable alarm",
+        "command": "alarm_clock",
+        "args": { "action": "enable_alarm" }
+    },
+    {
+        "caption": "Alarm Clock: Disable alarm",
+        "command": "alarm_clock",
+        "args": { "action": "disable_alarm" }
+    },
+    {
+        "caption": "Alarm Clock: Enable all alarms",
+        "command": "alarm_clock",
+        "args": { "action": "enable_all_alarms" }
+    },
+    {
+        "caption": "Alarm Clock: Disable all alarms",
+        "command": "alarm_clock",
+        "args": { "action": "disable_all_alarms" }
+    },
+    {
+        "caption": "Alarm Clock: Delete alarm",
+        "command": "alarm_clock",
+        "args": { "action": "delete_alarm" }
+    },
+    {
+        "caption": "Alarm Clock: Delete all alarms",
+        "command": "alarm_clock",
+        "args": { "action": "delete_all_alarms" }
+    }
+]
