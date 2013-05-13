@@ -1,6 +1,6 @@
 # Alarm Clock #
 
-A plugin for both Sublime Text 2 and 3 that allows alarms to be set X hours / X
+A plugin for both Sublime Text **3** that allows alarms to be set X hours / X
 minutes into the future or at XX:XX time.
 
 ## Details ##

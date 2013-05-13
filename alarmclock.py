@@ -37,7 +37,7 @@ def beep(arg, stop_event):
 
 class AlarmClockCommand(sublime_plugin.TextCommand):
 
-    alarmSettingFile = "Alarms.sublime-settings"
+    alarmSettingFile = "AlarmClock.sublime-settings"
     storageFormat = "%a %b %d %H:%M:%S %Y"
     displayFormat = "%a %b %d %H:%M:%S"
     snoozeTimeMins = 9
