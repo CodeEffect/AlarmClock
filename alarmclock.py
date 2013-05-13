@@ -43,6 +43,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
     snoozeTimeMins = 9
 
     def run(self, edit, action=None, alarmId=None):
+        self.loadSettings()
         action = str(action).lower()
 
         if action == "none" or action == "choose":
@@ -66,7 +67,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         elif action == "delete_all_alarms":
             self.deleteAll()
         elif action == "on_app_start":
-            self.onAppstart()
+            self.onAppStart()
         else:
             return sublime.status_message(
                 "Unknown action \"%s\"." % action
@@ -473,16 +474,16 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             alarms[self.alarmId]["time"] = newTime
         self.saveAlarmSettings(alarms)
 
-    def getSettings(self):
-        return sublime.load_settings(self.alarmSettingFile)
+    def loadSettings(self):
+        self.settings = sublime.load_settings(self.alarmSettingFile)
+        self.audibleAlarm = self.settings.get("audible", True)
+        self.snoozeTimeMins = self.settings.get("snooze_mins", 9)
 
     def getAlarmSettings(self):
-        settings = self.getSettings()
-        return settings.get("alarms", [])
+        return self.settings.get("alarms", [])
 
     def saveAlarmSettings(self, alarms):
-        settings = self.getSettings()
-        settings.set("alarms", alarms)
+        self.settings.set("alarms", alarms)
         sublime.save_settings(self.alarmSettingFile)
 
     def getItems(self):
@@ -499,6 +500,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         return items
 
     def ringMyBell(self):
+        self.loadSettings()
         # Remove from alarm list
         alarms = self.getAlarmSettings()
         found = False
@@ -539,10 +541,9 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             )
         self.stopBeeping()
 
-    def onAppstart(self):
-        settings = self.getSettings()
-        self.audibleAlarm = settings.get("audible", True)
-        alarms = settings.get("alarms", [])
+    def onAppStart(self):
+        self.loadSettings()
+        alarms = self.getAlarmSettings()
         alarms = self.removeOldAlarms(alarms)
         key = 0
         currentTime = time.time()
@@ -555,7 +556,6 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
                 (alarmTime - currentTime) * 1000
             )
             key += 1
-        self.snoozeTimeMins = settings.get("snooze_mins", 9)
         self.saveAlarmSettings(alarms)
 
     def removeOldAlarms(self, alarms):
