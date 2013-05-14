@@ -1,4 +1,10 @@
 {
 	"snooze_mins": 9,
-	"audible": true
+	// Set to false to disable all audible alarms
+	"audible": true,
+	"win_alarm_cmd": ["alarms/mp3.exe", "-l", "alarms/beep.mp3"],
+	"osx_alarm_cmd": ["alarms/osx_alarm.sh", "alarms/beep.mp3"],
+	"linux_alarm_cmd": ["alarms/linux_alarm.sh", "alarms/beep.wav"],
+	// Set to a non empty string to use say rather than the beep
+	"osx_say": ""
 }

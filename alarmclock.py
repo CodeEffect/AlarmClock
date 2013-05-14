@@ -2,37 +2,30 @@ import sublime
 import sublime_plugin
 import datetime
 import time
-import threading
+import subprocess
+import os
 
 
 def beep(arg, stop_event):
+    # No longer required as app + wav file is a better solution
     if sublime.platform() == "windows":
-        import winsound
-        while(not stop_event.is_set()):
-            winsound.Beep(2000, 150)
-            winsound.Beep(2000, 150)
-            winsound.Beep(2000, 150)
-            winsound.Beep(2000, 150)
-            stop_event.wait(0.5)
+        if int(sublime.version()) < 3000:
+            # ST2 Windows
+            os.chdir(os.path.dirname(os.path.abspath(__file__)))
+            while(not stop_event.is_set()):
+                subprocess.call("wscript ./beep.vbs")
+                stop_event.wait(1)
+        else:
+            # ST3 Windows
+            import winsound
+            while(not stop_event.is_set()):
+                winsound.Beep(2000, 150)
+                winsound.Beep(2000, 150)
+                winsound.Beep(2000, 150)
+                winsound.Beep(2000, 150)
+                stop_event.wait(0.5)
     else:
         pass
-        # import ossaudiodev
-        # import wave
-        # s = wave.open('alarm.wav', 'rb')
-        # (nc, sw, fr, nf, comptype, compname) = s.getparams()
-        # dsp = ossaudiodev.open('/dev/dsp', 'w')
-        # try:
-        #     from ossaudiodev import AFMT_S16_NE
-        # except ImportError:
-        #     if byteorder == "little":
-        #         AFMT_S16_NE = ossaudiodev.AFMT_S16_LE
-        #     else:
-        #         AFMT_S16_NE = ossaudiodev.AFMT_S16_BE
-        # dsp.setparameters(AFMT_S16_NE, nc, fr)
-        # data = s.readframes(nf)
-        # s.close()
-        # dsp.write(data)
-        # dsp.close()
 
 
 class AlarmClockCommand(sublime_plugin.TextCommand):
@@ -478,6 +471,19 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         self.settings = sublime.load_settings(self.alarmSettingFile)
         self.audibleAlarm = self.settings.get("audible", True)
         self.snoozeTimeMins = self.settings.get("snooze_mins", 9)
+        self.platform = sublime.platform()
+        self.winAlarmCmd = self.settings.get("win_alarm_cmd", None)
+        self.osxAlarmCmd = self.settings.get("osx_alarm_cmd", None)
+        self.linuxAlarmCmd = self.settings.get("linux_alarm_cmd", None)
+        self.osxSay = self.settings.get("osx_say", None)
+        self.pluginPath = os.path.dirname(os.path.abspath(__file__))
+        # ST2 on XP managed to get the path wrong with the above line
+        if not os.path.exists("%s%salarmclock.py" % (self.pluginPath, os.sep)):
+            self.pluginPath = "%s%sAlarmClock%s" % (
+                sublime.packages_path(),
+                os.sep,
+                os.sep
+            )
 
     def getAlarmSettings(self):
         return self.settings.get("alarms", [])
@@ -519,7 +525,6 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         if len(toDel):
             for d in reversed(toDel):
                 del alarms[d]
-        alarms = self.removeOldAlarms(alarms)
         self.saveAlarmSettings(alarms)
         if found:
             self.startBeeping()
@@ -541,6 +546,14 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             )
         self.stopBeeping()
 
+    def handleSnoozeOrCancel(self, selection):
+        self.stopBeeping()
+        if selection == 0:
+            sublime.set_timeout(
+                self.snoozeMyBell,
+                (self.snoozeTimeMins * 60) * 1000
+            )
+
     def onAppStart(self):
         self.loadSettings()
         alarms = self.getAlarmSettings()
@@ -557,6 +570,11 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             )
             key += 1
         self.saveAlarmSettings(alarms)
+        os.chdir(self.pluginPath)
+        if self.platform == "linux":
+            os.chmod("alarms/linux_alarm.sh", 0o777)
+        elif self.platform == "osx":
+            os.chmod("alarms/osx_alarm.sh", 0o777)
 
     def removeOldAlarms(self, alarms):
         key = 0
@@ -575,14 +593,32 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         return alarms
 
     def startBeeping(self):
+        self.beeper = False
         if self.audibleAlarm:
-            self.t_stop = threading.Event()
-            t = threading.Thread(target=beep, args=(1, self.t_stop))
-            t.start()
+            os.chdir(self.pluginPath)
+            if self.platform == "windows":
+                # Windows XP, vista, 7
+                beepCmd = self.winAlarmCmd
+            elif self.platform == "linux":
+                # Alsa required
+                beepCmd = self.linuxAlarmCmd
+            elif self.platform == "osx":
+                if self.osxSay:
+                    beepCmd = ["say", self.osxSay]
+                else:
+                    # OSX 10.5+?
+                    beepCmd = self.osxAlarmCmd
+            else:
+                print("Platform not supported")
+                return
+            self.beeper = subprocess.Popen(beepCmd)
 
     def stopBeeping(self):
-        if self.audibleAlarm:
-            self.t_stop.set()
+        if self.beeper:
+            try:
+                self.beeper.terminate()
+            except:
+                pass
 
     def display(self, t):
         return time.strftime(
