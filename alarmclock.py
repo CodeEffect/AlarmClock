@@ -6,37 +6,15 @@ import subprocess
 import os
 
 
-def beep(arg, stop_event):
-    # No longer required as app + wav file is a better solution
-    if sublime.platform() == "windows":
-        if int(sublime.version()) < 3000:
-            # ST2 Windows
-            os.chdir(os.path.dirname(os.path.abspath(__file__)))
-            while(not stop_event.is_set()):
-                subprocess.call("wscript ./beep.vbs")
-                stop_event.wait(1)
-        else:
-            # ST3 Windows
-            import winsound
-            while(not stop_event.is_set()):
-                winsound.Beep(2000, 150)
-                winsound.Beep(2000, 150)
-                winsound.Beep(2000, 150)
-                winsound.Beep(2000, 150)
-                stop_event.wait(0.5)
-    else:
-        pass
-
-
 class AlarmClockCommand(sublime_plugin.TextCommand):
 
     alarmSettingFile = "AlarmClock.sublime-settings"
     storageFormat = "%a %b %d %H:%M:%S %Y"
     displayFormat = "%a %b %d %H:%M:%S"
     snoozeTimeMins = 9
+    settings = False
 
     def run(self, edit, action=None, alarmId=None):
-        self.loadSettings()
         action = str(action).lower()
 
         if action == "none" or action == "choose":
@@ -109,7 +87,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             "Select a time hours / minutes",
             "Enter a time (HH:MM)"
         ]
-        self.show_quick_panel(items, self.newType)
+        self.show_quick_panel(items, self.handleNew)
 
     def edit(self, alarmId):
         if alarmId is -1:
@@ -131,7 +109,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
                 "Select a time hours / minutes",
                 "Enter a time (HH:MM)"
             ]
-            self.show_quick_panel(items, self.editType)
+            self.show_quick_panel(items, self.handleEdit)
 
     def list(self, alarmId):
         if alarmId is -1:
@@ -160,7 +138,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
                 "%s: %s" % (enabled, displayTime),
                 "Delete: %s" % displayTime
             ]
-            self.show_quick_panel(items, self.listType)
+            self.show_quick_panel(items, self.handleList)
 
     def enable(self, alarmId):
         if alarmId is -1:
@@ -256,7 +234,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             print(msg)
             sublime.status_message(msg)
 
-    def newType(self, selection):
+    def handleNew(self, selection):
         self.clearLocalVars()
         self.command = "new"
 
@@ -279,7 +257,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             self.clearLocalVars()
             return
 
-    def editType(self, selection):
+    def handleEdit(self, selection):
         if selection == 0:
             self.showMins()
         elif selection == 1:
@@ -299,7 +277,7 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             self.clearLocalVars()
             return
 
-    def listType(self, selection):
+    def handleList(self, selection):
         if selection == 0:
             self.edit(self.alarmId)
         elif selection == 1:
@@ -467,29 +445,27 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             alarms[self.alarmId]["time"] = newTime
         self.saveAlarmSettings(alarms)
 
-    def loadSettings(self):
-        self.settings = sublime.load_settings(self.alarmSettingFile)
-        self.audibleAlarm = self.settings.get("audible", True)
-        self.snoozeTimeMins = self.settings.get("snooze_mins", 9)
-        self.platform = sublime.platform()
-        self.winAlarmCmd = self.settings.get("win_alarm_cmd", None)
-        self.osxAlarmCmd = self.settings.get("osx_alarm_cmd", None)
-        self.linuxAlarmCmd = self.settings.get("linux_alarm_cmd", None)
-        self.osxSay = self.settings.get("osx_say", None)
-        self.pluginPath = os.path.dirname(os.path.abspath(__file__))
+    def getSettings(self):
+        if not self.settings:
+            self.settings = sublime.load_settings(self.alarmSettingFile)
+        return self.settings
+
+    def chdirToPluginPath(self):
+        pluginPath = os.path.dirname(os.path.abspath(__file__))
         # ST2 on XP managed to get the path wrong with the above line
-        if not os.path.exists("%s%salarmclock.py" % (self.pluginPath, os.sep)):
-            self.pluginPath = "%s%sAlarmClock%s" % (
+        if not os.path.exists("%s%salarmclock.py" % (pluginPath, os.sep)):
+            pluginPath = "%s%sAlarmClock%s" % (
                 sublime.packages_path(),
                 os.sep,
                 os.sep
             )
+        os.chdir(pluginPath)
 
     def getAlarmSettings(self):
-        return self.settings.get("alarms", [])
+        return self.getSettings().get("alarms", [])
 
     def saveAlarmSettings(self, alarms):
-        self.settings.set("alarms", alarms)
+        self.getSettings().set("alarms", alarms)
         sublime.save_settings(self.alarmSettingFile)
 
     def getItems(self):
@@ -506,7 +482,6 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         return items
 
     def ringMyBell(self):
-        self.loadSettings()
         # Remove from alarm list
         alarms = self.getAlarmSettings()
         found = False
@@ -531,7 +506,10 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             if sublime.ok_cancel_dialog("Alarm time up", "Snooze"):
                 sublime.set_timeout(
                     self.snoozeMyBell,
-                    (self.snoozeTimeMins * 60) * 1000
+                    (self.getSettings().get(
+                        "snooze_mins",
+                        self.snoozeTimeMins
+                    ) * 60) * 1000
                 )
             self.stopBeeping()
         else:
@@ -542,20 +520,14 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
         if sublime.ok_cancel_dialog("Snooze time up", "Snooze again"):
             sublime.set_timeout(
                 self.snoozeMyBell,
-                (self.snoozeTimeMins * 60) * 1000
+                (self.getSettings().get(
+                    "snooze_mins",
+                    self.snoozeTimeMins
+                ) * 60) * 1000
             )
         self.stopBeeping()
-
-    def handleSnoozeOrCancel(self, selection):
-        self.stopBeeping()
-        if selection == 0:
-            sublime.set_timeout(
-                self.snoozeMyBell,
-                (self.snoozeTimeMins * 60) * 1000
-            )
 
     def onAppStart(self):
-        self.loadSettings()
         alarms = self.getAlarmSettings()
         alarms = self.removeOldAlarms(alarms)
         key = 0
@@ -570,10 +542,11 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
             )
             key += 1
         self.saveAlarmSettings(alarms)
-        os.chdir(self.pluginPath)
-        if self.platform == "linux":
+        self.chdirToPluginPath()
+        platform = sublime.platform()
+        if platform == "linux":
             os.chmod("alarms/linux_alarm.sh", 0o777)
-        elif self.platform == "osx":
+        elif platform == "osx":
             os.chmod("alarms/osx_alarm.sh", 0o777)
 
     def removeOldAlarms(self, alarms):
@@ -594,20 +567,21 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
 
     def startBeeping(self):
         self.beeper = False
-        if self.audibleAlarm:
-            os.chdir(self.pluginPath)
-            if self.platform == "windows":
+        if self.getSettings().get("audible", True):
+            self.chdirToPluginPath()
+            platform = sublime.platform()
+            if platform == "windows":
                 # Windows XP, vista, 7
-                beepCmd = self.winAlarmCmd
-            elif self.platform == "linux":
+                beepCmd = self.getSettings().get("win_alarm_cmd", None)
+            elif platform == "linux":
                 # Alsa required
-                beepCmd = self.linuxAlarmCmd
-            elif self.platform == "osx":
-                if self.osxSay:
-                    beepCmd = ["say", self.osxSay]
+                beepCmd = self.getSettings().get("linux_alarm_cmd", None)
+            elif platform == "osx":
+                if self.getSettings().get("osx_say", None):
+                    beepCmd = ["say", self.getSettings().get("osx_say", None)]
                 else:
                     # OSX 10.5+?
-                    beepCmd = self.osxAlarmCmd
+                    beepCmd = self.getSettings().get("osx_alarm_cmd", None)
             else:
                 print("Platform not supported")
                 return
