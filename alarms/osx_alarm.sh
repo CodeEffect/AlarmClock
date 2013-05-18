@@ -1,3 +1,3 @@
 #!/bin/sh
 
-while [ true ] ; do afplay -q $* ; done
+while [ true ] ; do afplay $* ; done
