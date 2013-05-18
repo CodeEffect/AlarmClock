@@ -1,3 +1,4 @@
+# coding=utf-8
 import sublime
 import sublime_plugin
 import datetime
@@ -453,11 +454,10 @@ class AlarmClockCommand(sublime_plugin.TextCommand):
     def chdirToPluginPath(self):
         pluginPath = os.path.dirname(os.path.abspath(__file__))
         # ST2 on XP managed to get the path wrong with the above line
-        if not os.path.exists("%s%salarmclock.py" % (pluginPath, os.sep)):
-            pluginPath = "%s%sAlarmClock%s" % (
+        if not os.path.exists(os.path.join(pluginPath, "alarmclock.py")):
+            pluginPath = os.path.join(
                 sublime.packages_path(),
-                os.sep,
-                os.sep
+                "AlarmClock"
             )
         os.chdir(pluginPath)
 
