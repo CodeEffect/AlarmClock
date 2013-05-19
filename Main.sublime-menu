@@ -17,6 +17,17 @@
                         [
                             {
                                 "command": "open_file",
+                                "args": { "file": "${packages}/AlarmClock/AlarmClock.sublime-settings" },
+                                "caption": "Settings – Default"
+                            },
+                            {
+                                "command": "open_file",
+                                "args": { "file": "${packages}/User/AlarmClock.sublime-settings" },
+                                "caption": "Settings – User"
+                            },
+                            { "caption": "-" },
+                            {
+                                "command": "open_file",
                                 "args": { "file": "${packages}/AlarmClock/Default (Windows).sublime-keymap", "platform": "Windows" },
                                 "caption": "Key Bindings – Default"
                             },
