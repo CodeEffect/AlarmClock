@@ -1,10 +1,15 @@
 {
+	// The number of minute between pressing teh sonnze button
 	"snooze_mins": 9,
-	// Set to false to disable all audible alarms
+
+	// Set to false to disable all audible alarms, you will ony get a popup message
 	"audible": true,
+
+	// The various commands to pass to subprocess popen for each platform
 	"win_alarm_cmd": ["alarms/mp3.exe", "-l", "alarms/beep.mp3"],
 	"osx_alarm_cmd": ["alarms/osx_alarm.sh", "alarms/beep.mp3"],
 	"linux_alarm_cmd": ["alarms/linux_alarm.sh", "alarms/beep.wav"],
-	// Set to a non empty string to use say rather than the beep
+
+	// Set to a non empty string to say a message rather than the beep
 	"osx_say": ""
 }
